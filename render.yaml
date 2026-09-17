@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: airbnb-guest-favourite-checker
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /health
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"

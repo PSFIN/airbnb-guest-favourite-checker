@@ -1,0 +1,6 @@
+webapp/.venv
+webapp/__pycache__
+webapp/checkpoint.json
+webapp/runs/*.json
+.git
+.DS_Store

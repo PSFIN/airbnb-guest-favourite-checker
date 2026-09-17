@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Airbnb Guest Favourite Checker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f7f7f7;
+      color: #222;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 6px rgba(0,0,0,.06);
+    }
+    header h1 { font-size: 1.2rem; font-weight: 700; color: #FF385C; }
+    header span { font-size: .88rem; color: #aaa; margin-left: 4px; }
+
+    main { max-width: 1000px; margin: 0 auto; padding: 36px 20px 80px; }
+
+    /* ── Sticky progress bar ── */
+    #progressCard {
+      position: sticky;
+      top: 57px;          /* sits flush below the site header */
+      z-index: 90;
+      box-shadow: 0 4px 18px rgba(0,0,0,.13);
+    }
+    /* Compact the stats row inside the sticky bar */
+    #progressCard .stats-grid {
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    #progressCard .stat-box { padding: 10px 8px; }
+    #progressCard .stat-box .val { font-size: 1.5rem; }
+    #progressCard .stat-box .lbl { font-size: .7rem; }
+    #progressCard .card-title { margin-bottom: 14px; font-size: .95rem; }
+
+    /* ── Cards ── */
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 2px 14px rgba(0,0,0,.07);
+      padding: 32px;
+      margin-bottom: 24px;
+    }
+    .card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #222;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── Last run banner ── */
+    .lastrun-banner {
+      background: #f0f9ff;
+      border: 1.5px solid #bae6fd;
+      border-radius: 12px;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .lastrun-banner .lr-left { display: flex; align-items: center; gap: 10px; }
+    .lastrun-banner strong { display: block; font-size: .93rem; color: #0c4a6e; }
+    .lastrun-banner small  { font-size: .8rem; color: #0369a1; }
+    .btn-lastrun {
+      flex-shrink: 0;
+      padding: 9px 18px;
+      background: #0284c7;
+      color: #fff;
+      font-size: .88rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background .2s;
+      white-space: nowrap;
+    }
+    .btn-lastrun:hover { background: #0369a1; }
+
+    /* ── Resume banner ── */
+    .resume-banner {
+      background: #fffbeb;
+      border: 1.5px solid #fbbf24;
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .resume-banner .rb-left { display: flex; align-items: center; gap: 10px; }
+    .resume-banner .rb-icon { font-size: 1.6rem; }
+    .resume-banner strong { display: block; font-size: .93rem; color: #92400e; }
+    .resume-banner small { font-size: .8rem; color: #a16207; }
+    .btn-resume {
+      flex-shrink: 0;
+      padding: 9px 18px;
+      background: #f59e0b;
+      color: #fff;
+      font-size: .88rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .btn-resume:hover { background: #d97706; }
+    .btn-discard {
+      flex-shrink: 0;
+      padding: 9px 14px;
+      background: transparent;
+      color: #9ca3af;
+      font-size: .82rem;
+      font-weight: 600;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: color .2s, border-color .2s;
+    }
+    .btn-discard:hover { color: #e11d48; border-color: #e11d48; }
+
+    /* ── Existing file ── */
+    .existing-banner {
+      background: #fff5f7;
+      border: 1.5px solid #FF385C;
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .existing-banner .left { display: flex; align-items: center; gap: 10px; }
+    .existing-banner .info strong { display: block; font-size: .93rem; color: #222; }
+    .existing-banner .info small { font-size: .8rem; color: #717171; }
+    .btn-use {
+      flex-shrink: 0;
+      padding: 10px 20px;
+      background: #FF385C;
+      color: #fff;
+      font-size: .9rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background .2s;
+      white-space: nowrap;
+    }
+    .btn-use:hover:not(:disabled) { background: #e0314f; }
+    .btn-use:disabled { background: #ccc; cursor: not-allowed; }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 16px 0;
+      color: #bbb;
+      font-size: .82rem;
+    }
+    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #e8e8e8; }
+
+    /* ── Drop zone ── */
+    .dropzone {
+      border: 2px dashed #ddd;
+      border-radius: 12px;
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      background: #fafafa;
+    }
+    .dropzone:hover, .dropzone.dragover { border-color: #FF385C; background: #fff5f7; }
+    .dropzone .dz-icon { font-size: 2.5rem; margin-bottom: 10px; display: block; }
+    .dropzone p { color: #717171; font-size: .9rem; margin-bottom: 4px; }
+    .dropzone .hint { font-size: .78rem; color: #bbb; }
+    .browse { color: #FF385C; font-weight: 600; cursor: pointer; background: none; border: none; font-size: inherit; font-family: inherit; text-decoration: underline; }
+    .file-pill {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      background: #fff5f7;
+      border: 1px solid #FF385C;
+      border-radius: 100px;
+      padding: 7px 14px;
+      font-size: .88rem;
+      font-weight: 500;
+      color: #FF385C;
+    }
+    .file-pill.show { display: flex; }
+    .file-pill .remove { cursor: pointer; margin-left: auto; color: #aaa; background: none; border: none; font-size: 1rem; }
+    .btn-primary {
+      margin-top: 20px;
+      width: 100%;
+      padding: 14px;
+      background: #FF385C;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .btn-primary:hover:not(:disabled) { background: #e0314f; }
+    .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+
+    /* ── Stats ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .stat-box { border-radius: 12px; padding: 14px 12px; text-align: center; }
+    .stat-box .val { font-size: 1.9rem; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+    .stat-box .lbl { font-size: .76rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+    .s-total  { background: #f7f7f7; } .s-total  .val, .s-total  .lbl { color: #444; }
+    .s-yes    { background: #f0fdf4; } .s-yes    .val, .s-yes    .lbl { color: #16a34a; }
+    .s-no     { background: #fff1f2; } .s-no     .val, .s-no     .lbl { color: #e11d48; }
+    .s-check  { background: #fffbeb; } .s-check  .val, .s-check  .lbl { color: #d97706; }
+
+    /* ── Progress ── */
+    .prog-wrap { background: #f0f0f0; border-radius: 100px; height: 10px; overflow: hidden; margin-bottom: 8px; }
+    .prog-fill { height: 100%; background: linear-gradient(90deg,#FF385C,#ff6b85); border-radius: 100px; transition: width .5s ease; width: 0%; }
+    .prog-labels { display: flex; justify-content: space-between; font-size: .83rem; color: #888; }
+    .prog-url { margin-top: 8px; font-size: .78rem; color: #bbb; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ── Status bar ── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: .84rem;
+      font-weight: 500;
+      transition: background .4s, border-color .4s;
+      border: 1px solid transparent;
+    }
+    .status-bar.st-running { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+    .status-bar.st-warn    { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+    .status-bar.st-stalled { background: #fff1f2; border-color: #fecdd3; color: #be123c; }
+    .status-dot {
+      width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+    }
+    .st-running .status-dot { background: #16a34a; animation: blink 1.4s ease-in-out infinite; }
+    .st-warn    .status-dot { background: #d97706; animation: blink 1s ease-in-out infinite; }
+    .st-stalled .status-dot { background: #e11d48; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+    .status-elapsed { margin-left: auto; font-size: .78rem; opacity: .7; white-space: nowrap; }
+    .btn-resume-inline {
+      margin-left: 8px;
+      padding: 4px 10px;
+      background: #e11d48;
+      color: #fff;
+      font-size: .78rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-stop {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 18px;
+      background: #fff;
+      color: #e11d48;
+      font-size: .88rem;
+      font-weight: 700;
+      border: 1.5px solid #fecdd3;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+      margin-top: 14px;
+    }
+    .btn-stop:hover:not(:disabled) { background: #fff1f2; border-color: #e11d48; }
+    .btn-stop:disabled { opacity: .5; cursor: not-allowed; }
+    .stopped-banner {
+      margin-top: 14px;
+      background: #fff1f2;
+      border: 1px solid #fecdd3;
+      border-radius: 10px;
+      padding: 12px 18px;
+      color: #be123c;
+      font-weight: 600;
+      font-size: .9rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .btn-resume-from-stop {
+      padding: 7px 16px;
+      background: #FF385C;
+      color: #fff;
+      font-size: .85rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .done-banner {
+      margin-top: 18px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 12px 18px;
+      color: #16a34a;
+      font-weight: 600;
+      font-size: .92rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── Results table ── */
+    .table-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .btn-dl {
+      padding: 8px 16px;
+      background: #fff;
+      color: #222;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      font-size: .85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: border-color .2s, color .2s;
+    }
+    .btn-dl:hover { border-color: #FF385C; color: #FF385C; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+    thead th {
+      text-align: left; padding: 10px 12px;
+      font-size: .73rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .05em;
+      color: #999; border-bottom: 2px solid #f0f0f0; white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid #f5f5f5; transition: background .12s; }
+    tbody tr:hover { background: #fafafa; }
+    tbody tr.row-new { animation: slideIn .3s ease forwards; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+    td { padding: 11px 12px; vertical-align: middle; }
+    .td-num { color: #bbb; font-size: .8rem; width: 36px; }
+    .td-name { font-weight: 600; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .td-group { color: #888; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .td-link a { color: #FF385C; font-size: .8rem; text-decoration: none; }
+    .td-link a:hover { text-decoration: underline; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 9px; border-radius: 100px;
+      font-size: .78rem; font-weight: 700; white-space: nowrap;
+    }
+    .b-yes        { background: #dcfce7; color: #16a34a; }
+    .b-no         { background: #ffe4e6; color: #e11d48; }
+    .b-check      { background: #fef9c3; color: #a16207; }
+    .b-na         { background: #f5f5f5; color: #9ca3af; }
+    .b-not-listed { background: #f0f9ff; color: #0369a1; }
+    .star { color: #f59e0b; }
+    .empty-row td { text-align: center; color: #ccc; padding: 36px; }
+
+    /* ── Placeholder / checking / revealed row states ── */
+    tbody tr.row-placeholder td {
+      background: #f9f9f9;
+      animation: ph-pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes ph-pulse { 0%,100%{ opacity:1; } 50%{ opacity:.4; } }
+    tbody tr.row-checking td { background: #fffbeb; }
+    @keyframes rowReveal {
+      from { opacity: 0; background: #fff5f7; }
+      to   { opacity: 1; background: transparent; }
+    }
+    tbody tr.row-revealed { animation: rowReveal .35s ease forwards; }
+
+    /* ── Summary ── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-top: 4px;
+    }
+    .grp-card {
+      border: 1px solid #f0f0f0;
+      border-radius: 12px;
+      padding: 18px;
+      transition: box-shadow .2s;
+    }
+    .grp-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+    .grp-card .grp-name {
+      font-weight: 700; font-size: .92rem; color: #222;
+      margin-bottom: 12px; display: flex; align-items: center;
+      justify-content: space-between;
+    }
+    .grp-card .grp-pct {
+      font-size: .82rem; font-weight: 700;
+      padding: 3px 8px; border-radius: 100px;
+    }
+    .pct-high { background: #dcfce7; color: #16a34a; }
+    .pct-mid  { background: #fef9c3; color: #a16207; }
+    .pct-low  { background: #ffe4e6; color: #e11d48; }
+    .grp-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .grp-stat { background: #f9f9f9; border-radius: 8px; padding: 10px 12px; }
+    .grp-stat .gs-val { font-size: 1.1rem; font-weight: 700; color: #222; }
+    .grp-stat .gs-lbl { font-size: .72rem; color: #999; margin-top: 2px; }
+    .grp-bar-wrap { margin-top: 12px; height: 6px; background: #f0f0f0; border-radius: 100px; overflow: hidden; }
+    .grp-bar { height: 100%; border-radius: 100px; background: #FF385C; }
+
+    /* ── Comparison ── */
+    .comp-meta { font-size: .82rem; color: #888; margin-bottom: 18px; }
+    .comp-section { margin-bottom: 22px; }
+    .comp-section h3 { font-size: .88rem; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .comp-list { display: flex; flex-direction: column; gap: 8px; }
+    .comp-item {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 10px 14px;
+      border-radius: 10px; font-size: .85rem;
+    }
+    .comp-item.gained { background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .comp-item.lost   { background: #fff1f2; border: 1px solid #fecdd3; }
+    .comp-item.rating { background: #f8fafc; border: 1px solid #e2e8f0; }
+    .comp-item .ci-name { font-weight: 600; }
+    .comp-item .ci-group { font-size: .78rem; color: #888; }
+    .comp-item .ci-right { display: flex; align-items: center; gap: 8px; text-align: right; flex-shrink: 0; }
+    .delta-up   { color: #16a34a; font-weight: 700; }
+    .delta-down { color: #e11d48; font-weight: 700; }
+    .comp-empty { font-size: .85rem; color: #bbb; font-style: italic; padding: 8px 0; }
+    .comp-summary-row {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;
+    }
+    .comp-stat-box {
+      border-radius: 12px; padding: 16px; text-align: center;
+    }
+    .cs-gained { background: #f0fdf4; }
+    .cs-gained .cs-val { color: #16a34a; }
+    .cs-lost   { background: #fff1f2; }
+    .cs-lost   .cs-val { color: #e11d48; }
+    .cs-rating { background: #f0f9ff; }
+    .cs-rating .cs-val { color: #0284c7; }
+    .cs-val { font-size: 1.8rem; font-weight: 700; line-height: 1; }
+    .cs-lbl { font-size: .76rem; font-weight: 600; color: #888; margin-top: 4px; }
+
+    @media (max-width: 700px) {
+      .stats-grid { grid-template-columns: repeat(3, 1fr); }
+      #progressCard .stats-grid { grid-template-columns: repeat(3, 1fr); }  /* unchanged */
+      .card { padding: 18px; }
+      .comp-summary-row { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <svg width="26" height="28" viewBox="0 0 30 32" fill="#FF385C" xmlns="http://www.w3.org/2000/svg">
+    <path d="M29.5 21.6c0 4.1-3.2 7.4-7.2 7.4-2.6 0-4.9-1.4-6.3-3.5-1.4 2.1-3.7 3.5-6.3 3.5C5.7 29 2.5 25.7 2.5 21.6c0-1.7.6-3.3 1.6-4.6L14.5 3l10.4 14c1 1.3 1.6 2.9 1.6 4.6z"/>
+  </svg>
+  <h1>Guest Favourite Checker</h1>
+  <span>Airbnb listing analyzer</span>
+</header>
+
+<main>
+
+  <!-- Last run banner (hidden until a previous run is found) -->
+  <div class="lastrun-banner" id="lastRunBanner" style="display:none">
+    <div class="lr-left">
+      <span style="font-size:1.4rem">📊</span>
+      <div>
+        <strong>Last Run Report</strong>
+        <small id="lastRunMeta">—</small>
+      </div>
+    </div>
+    <button class="btn-lastrun" id="viewLastRunBtn">View Report</button>
+  </div>
+
+  <!-- Resume banner (hidden until checkpoint found) -->
+  <div class="resume-banner" id="resumeBanner" style="display:none">
+    <div class="rb-left">
+      <span class="rb-icon">⏸</span>
+      <div>
+        <strong id="resumeTitle">Previous run paused</strong>
+        <small id="resumeSubtitle">0 of 0 completed · saved at —</small>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-discard" id="discardBtn">Discard</button>
+      <button class="btn-resume" id="resumeBtn">▶ Resume</button>
+    </div>
+  </div>
+
+  <!-- Upload card -->
+  <div class="card" id="uploadCard">
+    <div class="card-title">📂 Check Listings</div>
+
+    <div class="existing-banner" id="existingBanner" style="display:none">
+      <div class="left">
+        <span style="font-size:1.4rem">📄</span>
+        <div class="info">
+          <strong id="existingFileName">Airbnb Guest Favorite Check.csv</strong>
+          <small>Found in project folder — ready to use</small>
+        </div>
+      </div>
+      <button class="btn-use" id="useExistingBtn">▶ Start Checking</button>
+    </div>
+
+    <div class="divider" id="orDivider" style="display:none">or upload a different file</div>
+
+    <div class="dropzone" id="dropzone">
+      <span class="dz-icon">📂</span>
+      <p>Drop your CSV here or <button class="browse" id="browseBtn">browse files</button></p>
+      <p class="hint">Columns: Property Name · Group · Airbnb Link</p>
+    </div>
+    <input type="file" id="fileInput" accept=".csv" style="display:none" />
+
+    <div class="file-pill" id="filePill">
+      <span>📄</span>
+      <span id="fileName"></span>
+      <button class="remove" id="removeFile">✕</button>
+    </div>
+
+    <button class="btn-primary" id="startBtn" disabled>Check Listings</button>
+  </div>
+
+  <!-- Progress card -->
+  <div class="card" id="progressCard" style="display:none">
+    <div class="card-title">⏳ Progress</div>
+    <div class="stats-grid">
+      <div class="stat-box s-total"><div class="val" id="sTotal">0</div><div class="lbl">Total</div></div>
+      <div class="stat-box s-yes">  <div class="val" id="sYes">0</div>  <div class="lbl">Guest Fav</div></div>
+      <div class="stat-box s-no">   <div class="val" id="sNo">0</div>   <div class="lbl">Not Featured</div></div>
+      <div class="stat-box" style="background:#f0f9ff"><div class="val" id="sNotListed" style="color:#0369a1">0</div><div class="lbl" style="color:#0369a1">Not Listed</div></div>
+      <div class="stat-box" style="background:#f5f3ff">
+        <div class="val" id="sTimer" style="color:#7c3aed;font-size:1.15rem;letter-spacing:-.5px">0:00</div>
+        <div class="lbl" style="color:#7c3aed" id="sTimerLbl">Elapsed</div>
+      </div>
+    </div>
+    <div class="prog-wrap"><div class="prog-fill" id="progFill"></div></div>
+    <div class="prog-labels">
+      <span id="progText">Starting…</span>
+      <span id="progPct">0%</span>
+    </div>
+    <div class="prog-url" id="progUrl"></div>
+
+    <div class="status-bar st-running" id="statusBar" style="display:none">
+      <div class="status-dot"></div>
+      <span id="statusText">Starting…</span>
+      <span class="status-elapsed" id="statusElapsed"></span>
+    </div>
+
+    <button class="btn-stop" id="stopBtn" style="display:none">
+      ⏹ Stop
+    </button>
+
+    <div class="done-banner" id="doneBanner" style="display:none">
+      ✅ All listings checked — download your results or view the summary below.
+    </div>
+
+    <div class="stopped-banner" id="stoppedBanner" style="display:none">
+      <span>⏸ Run stopped — progress has been saved.</span>
+      <button class="btn-resume-from-stop" id="resumeFromStopBtn">▶ Resume</button>
+    </div>
+  </div>
+
+  <!-- Results table -->
+  <div class="card" id="resultsCard" style="display:none">
+    <div class="table-header">
+      <div class="card-title" style="margin-bottom:0">📋 Results</div>
+      <button class="btn-dl" id="downloadBtn" style="display:none">⬇ Download CSV</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Property Name</th><th>Group</th>
+            <th>Guest Fav</th><th>Rating</th><th>Reviews</th><th>Link</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody">
+          <tr class="empty-row"><td colspan="7">Results will appear here as each listing is checked…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Summary card (hidden until complete) -->
+  <div class="card" id="summaryCard" style="display:none">
+    <div class="card-title">📊 Summary by Group</div>
+    <div class="summary-grid" id="summaryGrid"></div>
+  </div>
+
+  <!-- Comparison card (hidden until complete + prev run exists) -->
+  <div class="card" id="comparisonCard" style="display:none">
+    <div class="card-title">🔄 Weekly Comparison</div>
+    <div class="comp-meta" id="compMeta"></div>
+
+    <div class="comp-summary-row">
+      <div class="comp-stat-box cs-gained">
+        <div class="cs-val" id="cGainedCount">0</div>
+        <div class="cs-lbl">Newly Guest Fav</div>
+      </div>
+      <div class="comp-stat-box cs-lost">
+        <div class="cs-val" id="cLostCount">0</div>
+        <div class="cs-lbl">Lost Guest Fav</div>
+      </div>
+      <div class="comp-stat-box cs-rating">
+        <div class="cs-val" id="cRatingCount">0</div>
+        <div class="cs-lbl">Rating Changes</div>
+      </div>
+    </div>
+
+    <div class="comp-section" id="gainedSection">
+      <h3>✨ Gained Guest Favourite</h3>
+      <div class="comp-list" id="gainedList"></div>
+    </div>
+    <div class="comp-section" id="lostSection">
+      <h3>⚠️ Lost Guest Favourite</h3>
+      <div class="comp-list" id="lostList"></div>
+    </div>
+    <div class="comp-section" id="ratingSection">
+      <h3>📈 Rating Changes</h3>
+      <div class="comp-list" id="ratingList"></div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  let selectedFile = null;
+  let csvData = null;
+  let counts = { yes: 0, no: 0, check: 0, notListed: 0 };
+  let emptyRowRemoved = false;
+  let tablePopulated  = false;   // true once placeholder rows have been pre-inserted
+
+  // ── Run timer ──────────────────────────────────────────────────────────────
+  let timerInterval = null;
+  let timerStart    = null;   // Date.now() when run started
+  let timerOffset   = 0;      // accumulated ms from previous segments (resume)
+
+  function formatTime(ms) {
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    return `${m}:${String(s).padStart(2,'0')}`;
+  }
+
+  function startTimer() {
+    stopTimer();
+    timerStart = Date.now();
+    timerInterval = setInterval(() => {
+      const elapsed = timerOffset + (Date.now() - timerStart);
+      document.getElementById('sTimer').textContent = formatTime(elapsed);
+    }, 1000);
+  }
+
+  function stopTimer(freeze) {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    if (freeze && timerStart !== null) {
+      // Accumulate elapsed so a resume picks up from here
+      timerOffset += Date.now() - timerStart;
+      timerStart = null;
+    }
+  }
+
+  function resetTimer() {
+    stopTimer();
+    timerOffset = 0;
+    timerStart  = null;
+    document.getElementById('sTimer').textContent = '0:00';
+    document.getElementById('sTimerLbl').textContent = 'Elapsed';
+  }
+
+  // ── DOM ────────────────────────────────────────────────────────────────────
+  const uploadCard    = document.getElementById('uploadCard');
+  const progressCard  = document.getElementById('progressCard');
+  const resultsCard   = document.getElementById('resultsCard');
+  const summaryCard   = document.getElementById('summaryCard');
+  const compCard      = document.getElementById('comparisonCard');
+  const resumeBanner  = document.getElementById('resumeBanner');
+  const existingBanner= document.getElementById('existingBanner');
+  const orDivider     = document.getElementById('orDivider');
+  const dropzone      = document.getElementById('dropzone');
+  const fileInput     = document.getElementById('fileInput');
+  const filePill      = document.getElementById('filePill');
+  const fileNameEl    = document.getElementById('fileName');
+  const startBtn      = document.getElementById('startBtn');
+  const resultsBody   = document.getElementById('resultsBody');
+  const progFill      = document.getElementById('progFill');
+  const progText      = document.getElementById('progText');
+  const progPct       = document.getElementById('progPct');
+  const progUrl       = document.getElementById('progUrl');
+  const doneBanner    = document.getElementById('doneBanner');
+  const downloadBtn   = document.getElementById('downloadBtn');
+
+  // ── Init: check for an already-running shared check, checkpoint, existing file, last run ──
+  (async () => {
+    const [ckRes, exRes, lrRes, ajRes] = await Promise.all([
+      fetch('/checkpoint').then(r => r.json()).catch(() => ({ exists: false })),
+      fetch('/existing-file').then(r => r.json()).catch(() => ({ exists: false })),
+      fetch('/last-run').then(r => r.json()).catch(() => ({ exists: false })),
+      fetch('/active-job').then(r => r.json()).catch(() => ({ active: false })),
+    ]);
+
+    if (ajRes.active) {
+      // Someone else already started a check with this shared link —
+      // join the same live run instead of showing the upload screen.
+      document.getElementById('lastRunBanner').style.display = 'none';
+      beginStreaming(ajRes.job_id);
+      return;
+    }
+
+    if (ckRes.exists) {
+      document.getElementById('resumeTitle').textContent =
+        `Resume: ${ckRes.filename}`;
+      document.getElementById('resumeSubtitle').textContent =
+        `${ckRes.processed} of ${ckRes.total} completed · saved ${fmtDate(ckRes.saved_at)}`;
+      resumeBanner.style.display = 'flex';
+    }
+
+    if (exRes.exists) {
+      document.getElementById('existingFileName').textContent = exRes.filename;
+      existingBanner.style.display = 'flex';
+      orDivider.style.display = 'flex';
+    }
+
+    if (lrRes.exists) {
+      const total = lrRes.results.length;
+      const favCount = lrRes.results.filter(r => r.result === 'Yes').length;
+      document.getElementById('lastRunMeta').textContent =
+        `${fmtDate(lrRes.run_date)} · ${total} listings · ${favCount} Guest Fav`;
+      document.getElementById('lastRunBanner').style.display = 'flex';
+
+      document.getElementById('viewLastRunBtn').addEventListener('click', () => {
+        loadLastRun(lrRes);
+      });
+    }
+  })();
+
+  function loadLastRun(data) {
+    csvData = data.csv;
+
+    // Hide upload / banners
+    uploadCard.style.display                                = 'none';
+    document.getElementById('lastRunBanner').style.display = 'none';
+    resumeBanner.style.display                             = 'none';
+
+    // ── Show progress card in its "done" state ──────────────────────────────
+    progressCard.style.display = 'block';
+    document.getElementById('stopBtn').style.display    = 'none';
+    document.getElementById('statusBar').style.display  = 'none';
+    doneBanner.style.display                            = 'none';
+
+    // Stats
+    counts = { yes: 0, no: 0, check: 0, notListed: 0 };
+    data.results.forEach(r => updateCounts(r.result));
+    document.getElementById('sTotal').textContent = data.results.length;
+
+    // Progress bar → 100 %
+    progFill.style.width   = '100%';
+    progPct.textContent    = '100%';
+    progText.textContent   = 'All done!';
+    progUrl.textContent    = '';
+
+    // Timer box — show stored duration if available, else run date
+    if (data.duration_ms) {
+      document.getElementById('sTimer').textContent    = formatTime(data.duration_ms);
+      document.getElementById('sTimerLbl').textContent = 'Total Time';
+    } else {
+      // Older runs don't have duration — show abbreviated run date instead
+      const d = new Date(data.run_date);
+      document.getElementById('sTimer').textContent    =
+        d.toLocaleString('en-US', { month:'short', day:'numeric',
+          hour:'2-digit', minute:'2-digit', timeZone:'America/New_York' });
+      document.getElementById('sTimerLbl').textContent = 'Run Date';
+    }
+
+    // Download button
+    downloadBtn.style.display = 'flex';
+
+    // ── "Viewing last run" info strip with back button ──────────────────────
+    const existingStrip = document.getElementById('lastRunStrip');
+    if (existingStrip) existingStrip.remove();
+    const strip = document.createElement('div');
+    strip.id = 'lastRunStrip';
+    strip.style.cssText = 'background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;'
+      + 'padding:9px 16px;color:#0369a1;font-size:.84rem;font-weight:600;'
+      + 'display:flex;align-items:center;justify-content:space-between;margin-top:14px';
+    strip.innerHTML = `<span>📊 Viewing last run — ${esc(data.filename)}</span>
+      <button onclick="location.reload()" style="background:none;border:none;color:#0369a1;
+        font-size:.82rem;cursor:pointer;text-decoration:underline;font-weight:700">← New Check</button>`;
+    progressCard.appendChild(strip);
+
+    // ── Results table ───────────────────────────────────────────────────────
+    resultsCard.style.display = 'block';
+    resultsBody.innerHTML     = '';
+    emptyRowRemoved           = true;
+    tablePopulated            = true;
+    data.results.forEach((r, idx) => {
+      addRow({
+        current: idx + 1, total: data.results.length,
+        name: r.name, group: r.group, url: r.url,
+        result: r.result, rating: r.rating, reviews: r.reviews,
+        replayed: true,
+      });
+    });
+
+    // ── Summary & comparison ────────────────────────────────────────────────
+    if (data.summary)    renderSummary(data.summary);
+    if (data.comparison) renderComparison(data.comparison);
+  }
+
+  // ── Resume ─────────────────────────────────────────────────────────────────
+  document.getElementById('resumeBtn').addEventListener('click', async () => {
+    resumeBanner.style.display = 'none';
+    const resp = await fetch('/resume', { method: 'POST' });
+    const json = await resp.json();
+    if (json.error) { alert(json.error); return; }
+    beginStreaming(json.job_id);
+  });
+
+  document.getElementById('discardBtn').addEventListener('click', async () => {
+    await fetch('/checkpoint', { method: 'DELETE' }).catch(() => {});
+    resumeBanner.style.display = 'none';
+  });
+
+  // ── Use existing file ──────────────────────────────────────────────────────
+  document.getElementById('useExistingBtn').addEventListener('click', async (e) => {
+    e.currentTarget.disabled = true;
+    e.currentTarget.textContent = 'Starting…';
+    resetTimer();   // fresh run — start from 0
+    const resp = await fetch('/use-existing', { method: 'POST' });
+    const json = await resp.json();
+    if (json.error) { alert(json.error); return; }
+    beginStreaming(json.job_id);
+  });
+
+  // ── File upload ────────────────────────────────────────────────────────────
+  document.getElementById('browseBtn').addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => setFile(e.target.files[0]));
+
+  dropzone.addEventListener('dragover',  e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault(); dropzone.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f && f.name.toLowerCase().endsWith('.csv')) setFile(f);
+    else alert('Please drop a .csv file.');
+  });
+  dropzone.addEventListener('click', e => { if (e.target.id !== 'browseBtn') fileInput.click(); });
+
+  document.getElementById('removeFile').addEventListener('click', e => {
+    e.stopPropagation();
+    selectedFile = null; fileInput.value = '';
+    filePill.classList.remove('show'); startBtn.disabled = true;
+  });
+
+  function setFile(file) {
+    if (!file) return;
+    selectedFile = file;
+    fileNameEl.textContent = file.name;
+    filePill.classList.add('show');
+    startBtn.disabled = false;
+  }
+
+  startBtn.addEventListener('click', async () => {
+    if (!selectedFile) return;
+    resetTimer();   // fresh run — start from 0
+    const fd = new FormData(); fd.append('file', selectedFile);
+    const resp = await fetch('/upload', { method: 'POST', body: fd });
+    const json = await resp.json();
+    if (json.error) { alert(json.error); return; }
+    beginStreaming(json.job_id);
+  });
+
+  // ── Core streaming ─────────────────────────────────────────────────────────
+  let lastEventAt   = null;
+  let stallTimer    = null;
+  let elapsedTimer  = null;
+  let currentJobId  = null;
+
+  function beginStreaming(jobId) {
+    currentJobId = jobId;
+    uploadCard.style.display   = 'none';
+    resumeBanner.style.display = 'none';
+    progressCard.style.display = 'block';
+    resultsCard.style.display  = 'block';
+
+    const statusBar  = document.getElementById('statusBar');
+    const stopBtn    = document.getElementById('stopBtn');
+    const stoppedBanner = document.getElementById('stoppedBanner');
+
+    statusBar.style.display  = 'flex';
+    stopBtn.style.display    = 'flex';
+    stoppedBanner.style.display = 'none';
+    lastEventAt = Date.now();
+    startStallDetection(jobId);
+    startTimer();
+
+    // ── Stop button ──────────────────────────────────────────────────────────
+    stopBtn.onclick = async () => {
+      stopBtn.disabled = true;
+      stopBtn.textContent = '⏹ Stopping…';
+      setStatus('warn', 'Stop requested — finishing current listing…');
+      await fetch(`/stop/${jobId}`, { method: 'POST' });
+    };
+
+    const es = new EventSource(`/stream/${jobId}`);
+    es.onmessage = e => {
+      lastEventAt = Date.now();
+      const data = JSON.parse(e.data);
+
+      if (data.type === 'checking') {
+        populatePlaceholders(data.total);
+        updateProgress(data.current, data.total, data.url);
+        setStatus('running', `Checking listing ${data.current} of ${data.total}…`);
+        // Mark the specific row as "checking" so user can see which one is in progress
+        const ckTr = resultsBody.querySelector(`[data-row="${data.current}"]`);
+        if (ckTr) {
+          ckTr.classList.remove('row-placeholder');
+          ckTr.classList.add('row-checking');
+          ckTr.innerHTML = `<td class="td-num">${data.current}</td><td colspan="6" style="color:#a16207;font-size:.82rem;padding-left:8px">⏳ checking…</td>`;
+        }
+      } else if (data.type === 'result') {
+        populatePlaceholders(data.total);   // no-op after first call; handles replayed-first resume
+        updateProgress(data.current, data.total, data.url);
+        addRow(data);
+        if (!data.replayed) updateCounts(data.result);
+        else syncCountsFromRow(data.result);
+        setStatus('running', `✓ ${data.current} of ${data.total} done`);
+      } else if (data.type === 'stopped') {
+        stopStallDetection();
+        stopTimer(true);   // freeze but keep accumulated time for resume
+        stopBtn.style.display = 'none';
+        statusBar.style.display = 'none';
+        stoppedBanner.style.display = 'flex';
+        progText.textContent = `Stopped at ${data.current} of ${data.total}`;
+        progUrl.textContent = '';
+        document.getElementById('resumeFromStopBtn').onclick = async () => {
+          stoppedBanner.style.display = 'none';
+          counts = { yes: 0, no: 0, check: 0, notListed: 0 };
+          emptyRowRemoved = false;
+          tablePopulated  = false;
+          resultsBody.innerHTML = '';
+          // Keep timerOffset so resumed run adds to previous time
+          const resp = await fetch('/resume', { method: 'POST' });
+          const json = await resp.json();
+          if (json.error) { alert(json.error); return; }
+          beginStreaming(json.job_id);
+        };
+        es.close();
+      } else if (data.type === 'complete') {
+        csvData = data.csv;
+        setDone();
+        stopStallDetection();
+        stopBtn.style.display = 'none';
+        if (data.summary)    renderSummary(data.summary);
+        if (data.comparison) renderComparison(data.comparison);
+        es.close();
+      } else if (data.type === 'error') {
+        progText.textContent = 'Error: ' + data.message;
+        progText.style.color = '#e11d48';
+        setStatus('stalled', 'Stopped due to an error.');
+        stopStallDetection();
+        stopBtn.style.display = 'none';
+        es.close();
+      }
+    };
+    es.onerror = () => {
+      setStatus('stalled', 'Connection lost.');
+      stopStallDetection();
+      es.close();
+    };
+  }
+
+  function setStatus(state, text) {
+    const bar = document.getElementById('statusBar');
+    const txt = document.getElementById('statusText');
+    bar.className = 'status-bar st-' + state;
+    // Remove any inline resume button from previous stall
+    const old = bar.querySelector('.btn-resume-inline');
+    if (old) old.remove();
+    txt.textContent = text;
+  }
+
+  function startStallDetection(jobId) {
+    stopStallDetection();
+    elapsedTimer = setInterval(() => {
+      const secs = Math.floor((Date.now() - lastEventAt) / 1000);
+      const el = document.getElementById('statusElapsed');
+      if (secs < 5) { el.textContent = ''; return; }
+      el.textContent = `Last update: ${secs}s ago`;
+
+      const bar = document.getElementById('statusBar');
+      const txt = document.getElementById('statusText');
+
+      if (secs >= 150 && !bar.querySelector('.btn-resume-inline')) {
+        setStatus('stalled', 'Appears to have stalled. ');
+        const btn = document.createElement('button');
+        btn.className = 'btn-resume-inline';
+        btn.textContent = '↺ Resume';
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          btn.textContent = 'Resuming…';
+          stopStallDetection();
+          const resp = await fetch('/resume', { method: 'POST' });
+          const json = await resp.json();
+          if (json.error) { alert(json.error); return; }
+          counts = { yes: 0, no: 0, check: 0, notListed: 0 };
+          emptyRowRemoved = false;
+          tablePopulated  = false;
+          resultsBody.innerHTML = '';
+          // Keep timerOffset so resumed run adds to previous time
+          beginStreaming(json.job_id);
+        });
+        bar.appendChild(btn);
+      } else if (secs >= 90 && secs < 150) {
+        setStatus('warn', 'Taking longer than usual — still working…');
+      }
+    }, 1000);
+  }
+
+  function stopStallDetection() {
+    clearInterval(elapsedTimer);
+    clearInterval(stallTimer);
+    elapsedTimer = stallTimer = null;
+  }
+
+  // ── Progress ───────────────────────────────────────────────────────────────
+  function updateProgress(current, total, url) {
+    const pct = Math.round(current / total * 100);
+    progFill.style.width = pct + '%';
+    progText.textContent = `Checking ${current} of ${total}`;
+    progPct.textContent  = pct + '%';
+    progUrl.textContent  = url || '';
+    document.getElementById('sTotal').textContent = total;
+  }
+
+  function updateCounts(result) {
+    if      (result === 'Yes')        counts.yes++;
+    else if (result === 'No')         counts.no++;
+    else if (result === 'Check')      counts.check++;
+    else if (result === 'Not Listed') counts.notListed++;
+    document.getElementById('sYes').textContent       = counts.yes;
+    document.getElementById('sNo').textContent        = counts.no;
+    document.getElementById('sNotListed').textContent = counts.notListed;
+  }
+
+  function syncCountsFromRow(result) {
+    updateCounts(result);   // same logic for replayed rows
+  }
+
+  function setDone() {
+    progFill.style.width = '100%'; progPct.textContent = '100%';
+    progText.textContent = 'All done!'; progUrl.textContent = '';
+    doneBanner.style.display = 'none';   // hide verbose banner — progress bar already shows 100%
+    document.getElementById('statusBar').style.display = 'none';
+    downloadBtn.style.display = 'flex';
+    // Freeze timer and label it as total time
+    stopTimer(true);
+    const finalMs = timerOffset;
+    document.getElementById('sTimer').textContent = formatTime(finalMs);
+    document.getElementById('sTimerLbl').textContent = 'Total Time';
+  }
+
+  // ── Pre-populate table with ordered placeholder rows ──────────────────────
+  function populatePlaceholders(total) {
+    if (tablePopulated) return;
+    tablePopulated = true;
+    resultsBody.innerHTML = '';
+    emptyRowRemoved = true;   // prevent addRow's old guard from wiping placeholders
+    for (let n = 1; n <= total; n++) {
+      const tr = document.createElement('tr');
+      tr.setAttribute('data-row', n);
+      tr.className = 'row-placeholder';
+      tr.innerHTML = `<td class="td-num">${n}</td><td colspan="6" style="color:#ccc;font-size:.82rem;padding-left:8px">waiting…</td>`;
+      resultsBody.appendChild(tr);
+    }
+  }
+
+  // ── Results table ──────────────────────────────────────────────────────────
+  function addRow(data) {
+    if (!emptyRowRemoved) { resultsBody.innerHTML = ''; emptyRowRemoved = true; }
+
+    const rowContent = `
+      <td class="td-num">${data.current}</td>
+      <td class="td-name" title="${esc(data.name)}">${esc(data.name)}</td>
+      <td class="td-group" title="${esc(data.group)}">${esc(data.group) || '<span style="color:#ddd">—</span>'}</td>
+      <td>${badge(data.result)}</td>
+      <td>${data.rating !== 'N/A' ? `<span class="star">★</span> <b>${esc(data.rating)}</b>` : '<span style="color:#ddd">—</span>'}</td>
+      <td>${data.reviews !== 'N/A' ? `${Number(data.reviews).toLocaleString()} reviews` : '<span style="color:#ddd">—</span>'}</td>
+      <td class="td-link">${data.url ? `<a href="${esc(data.url)}" target="_blank" rel="noopener">View ↗</a>` : '—'}</td>
+    `;
+
+    const existing = resultsBody.querySelector(`[data-row="${data.current}"]`);
+    if (existing) {
+      // In-place replacement — row stays in its original ordered position
+      existing.className = data.replayed ? '' : 'row-revealed';
+      existing.innerHTML = rowContent;
+      if (!data.replayed) existing.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+      // Fallback: placeholder missing for some reason — append
+      const tr = document.createElement('tr');
+      tr.setAttribute('data-row', data.current);
+      tr.className = data.replayed ? '' : 'row-revealed';
+      tr.innerHTML = rowContent;
+      resultsBody.appendChild(tr);
+      if (!data.replayed) tr.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
+  // ── Summary ────────────────────────────────────────────────────────────────
+  function renderSummary(groups) {
+    if (!groups || !groups.length) return;
+    summaryCard.style.display = 'block';
+    const grid = document.getElementById('summaryGrid');
+    grid.innerHTML = '';
+    groups.forEach(g => {
+      const pct = g.fav_pct;
+      const pctClass = pct >= 60 ? 'pct-high' : pct >= 30 ? 'pct-mid' : 'pct-low';
+      const avgRating = g.avg_rating != null ? `<span class="star">★</span> ${g.avg_rating}` : '—';
+      const div = document.createElement('div');
+      div.className = 'grp-card';
+      div.innerHTML = `
+        <div class="grp-name">
+          ${esc(g.group)}
+          <span class="grp-pct ${pctClass}">${pct}% Fav</span>
+        </div>
+        <div class="grp-stats">
+          <div class="grp-stat">
+            <div class="gs-val">${g.yes} / ${g.total}</div>
+            <div class="gs-lbl">Guest Favourite</div>
+          </div>
+          <div class="grp-stat">
+            <div class="gs-val">${avgRating}</div>
+            <div class="gs-lbl">Avg Rating</div>
+          </div>
+          <div class="grp-stat">
+            <div class="gs-val">${g.total_reviews > 0 ? g.total_reviews.toLocaleString() : '—'}</div>
+            <div class="gs-lbl">Total Reviews</div>
+          </div>
+          <div class="grp-stat">
+            <div class="gs-val">${g.not_listed > 0 ? `<span style="color:#0369a1">${g.not_listed}</span>` : '0'}</div>
+            <div class="gs-lbl">Not Listed</div>
+          </div>
+        </div>
+        <div class="grp-bar-wrap">
+          <div class="grp-bar" style="width:${pct}%"></div>
+        </div>
+      `;
+      grid.appendChild(div);
+    });
+  }
+
+  // ── Comparison ─────────────────────────────────────────────────────────────
+  function renderComparison(comp) {
+    if (!comp) return;
+    compCard.style.display = 'block';
+
+    const prevDate = fmtDate(comp.previous_run_date);
+    document.getElementById('compMeta').textContent =
+      `Comparing with run from ${prevDate}`;
+
+    document.getElementById('cGainedCount').textContent = comp.gained.length;
+    document.getElementById('cLostCount').textContent   = comp.lost.length;
+    document.getElementById('cRatingCount').textContent = comp.rating_changes.length;
+
+    // Gained
+    const gainedList = document.getElementById('gainedList');
+    if (comp.gained.length) {
+      gainedList.innerHTML = comp.gained.map(r => `
+        <div class="comp-item gained">
+          <div>
+            <div class="ci-name">${esc(r.name)}</div>
+            <div class="ci-group">${esc(r.group)}</div>
+          </div>
+          <div class="ci-right">
+            ${r.rating !== 'N/A' ? `<span class="star">★</span> ${esc(r.rating)}` : ''}
+            <span class="badge b-no" style="font-size:.72rem">${esc(r.prev_result)}</span>
+            <span style="color:#aaa;font-size:.8rem">→</span>
+            <span class="badge b-yes" style="font-size:.72rem">Yes</span>
+          </div>
+        </div>`).join('');
+    } else {
+      gainedList.innerHTML = '<p class="comp-empty">No new Guest Favourites this week.</p>';
+    }
+
+    // Lost
+    const lostList = document.getElementById('lostList');
+    if (comp.lost.length) {
+      lostList.innerHTML = comp.lost.map(r => `
+        <div class="comp-item lost">
+          <div>
+            <div class="ci-name">${esc(r.name)}</div>
+            <div class="ci-group">${esc(r.group)}</div>
+          </div>
+          <div class="ci-right">
+            ${r.rating !== 'N/A' ? `<span class="star">★</span> ${esc(r.rating)}` : ''}
+            <span class="badge b-yes" style="font-size:.72rem">Yes</span>
+            <span style="color:#aaa;font-size:.8rem">→</span>
+            <span class="badge b-no" style="font-size:.72rem">${esc(r.result)}</span>
+          </div>
+        </div>`).join('');
+    } else {
+      lostList.innerHTML = '<p class="comp-empty">No listings lost Guest Favourite this week.</p>';
+    }
+
+    // Rating changes
+    const ratingList = document.getElementById('ratingList');
+    if (comp.rating_changes.length) {
+      ratingList.innerHTML = comp.rating_changes.map(r => {
+        const up = r.diff > 0;
+        const cls = up ? 'delta-up' : 'delta-down';
+        const arrow = up ? '▲' : '▼';
+        return `
+        <div class="comp-item rating">
+          <div>
+            <div class="ci-name">${esc(r.name)}</div>
+            <div class="ci-group">${esc(r.group)}</div>
+          </div>
+          <div class="ci-right">
+            <span style="color:#aaa;font-size:.82rem">${esc(r.prev_rating)}</span>
+            <span style="color:#aaa;font-size:.8rem">→</span>
+            <span class="star">★</span> <b>${esc(r.rating)}</b>
+            <span class="${cls}">${arrow} ${Math.abs(r.diff)}</span>
+          </div>
+        </div>`;
+      }).join('');
+    } else {
+      ratingList.innerHTML = '<p class="comp-empty">No significant rating changes.</p>';
+    }
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function badge(result) {
+    const map  = { Yes: 'b-yes', No: 'b-no', Check: 'b-check', 'Not Listed': 'b-not-listed' };
+    const icon = { Yes: '✓', No: '✗', Check: '⚠', 'Not Listed': '○' };
+    const cls  = map[result]  || 'b-na';
+    const ico  = icon[result] || '—';
+    return `<span class="badge ${cls}">${ico} ${result}</span>`;
+  }
+
+  function esc(str) {
+    if (!str || str === 'nan' || str === 'None') return '';
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    try {
+      return new Date(iso).toLocaleString('en-US', {
+        day: 'numeric', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+        timeZone: 'America/New_York',
+      });
+    } catch (_) { return iso; }
+  }
+
+  downloadBtn.addEventListener('click', () => {
+    if (!csvData) return;
+    const blob = new Blob([atob(csvData)], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'Airbnb_Guest_Favourite_Results.csv';
+    a.click();
+  });
+</script>
+
+</body>
+</html>
